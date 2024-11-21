@@ -1,0 +1,11 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background: url('images/fundosite.jpg') no-repeat center center fixed; /* Imagem de fundo */
+    background-size: cover; /* Faz a imagem cobrir toda a página */
+    display: flex;
+    justify-content: center; /* Alinha o conteúdo ao centro horizontalmente */
+    align-items: center; /* Alinha o conteúdo ao centro verticalmente */
+    flex-direction: column; /* Organiza o título e o canvas em coluna */
+}

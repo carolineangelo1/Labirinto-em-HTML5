@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labirinto em HTML5</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: url('images/fundosite.jpg') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        h1 {
+            color: white;
+            font-size: 36px;
+        }
+
+        canvas {
+            border: 1px solid black;
+            margin-top: 20px;
+        }
+
+        #timer {
+            color: white;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fuja da Lully </h1>
+    <canvas id="labirinto" width="400" height="400"></canvas>
+    <div id="timer">Tempo: 0</div>
+    <button id="startButton">Iniciar Jogo</button>
+
+    <script>
+        const canvas = document.getElementById('labirinto');
+        const ctx = canvas.getContext('2d');
+        const tamanho = 40;
+        const jogador = { x: 0, y: 0 };
+        const bichinhos = [{ x: 4, y: 4 }, { x: 7, y: 2 }];
+        const imagemBichinho = new Image();
+        imagemBichinho.src = 'images/lulle.jpg';
+
+        const labirinto = [
+            [0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 1, 1, 1, 0, 1, 1, 0, 1, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+            [1, 1, 0, 1, 1, 1, 1, 0, 1, 0],
+            [0, 0, 0, 0, 3, 0, 1, 0, 0, 0],
+            [0, 1, 1, 1, 1, 1, 1, 0, 1, 1],
+            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 1, 1, 0, 3, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1, 0, 0, 2] // Chegada
+        ];
+
+        let jogoIniciado = false;
+        let tempo = 0;
+        let intervaloCronometro;
+
+        function desenhaLabirinto(ctx) {
+            for (let y = 0; y < labirinto.length; y++) {
+                for (let x = 0; x < labirinto[y].length; x++) {
+                    if (labirinto[y][x] === 1) {
+                        ctx.fillStyle = 'black'; // Paredes
+                    } else if (labirinto[y][x] === 2) {
+                        ctx.fillStyle = 'green'; // Chegada
+                    } else {
+                        ctx.fillStyle = 'white'; // Caminho
+                    }
+                    ctx.fillRect(x * tamanho, y * tamanho, tamanho, tamanho); // Desenha o labirinto
+                }
+            }
+
+            bichinhos.forEach((bicho) => {
+                ctx.drawImage(imagemBichinho, bicho.x * tamanho, bicho.y * tamanho, tamanho, tamanho); // Bichinhos
+            });
+
+            ctx.fillStyle = 'red';
+            ctx.fillRect(jogador.x * tamanho, jogador.y * tamanho, tamanho, tamanho); // Jogador
+        }
+
+        function moverJogador(direcao) {
+            const { x, y } = jogador;
+
+            if (direcao === 'ArrowUp' && y > 0 && labirinto[y - 1][x] !== 1) jogador.y--;
+            if (direcao === 'ArrowDown' && y < labirinto.length - 1 && labirinto[y + 1][x] !== 1) jogador.y++;
+            if (direcao === 'ArrowLeft' && x > 0 && labirinto[y][x - 1] !== 1) jogador.x--;
+            if (direcao === 'ArrowRight' && x < labirinto[0].length - 1 && labirinto[y][x + 1] !== 1) jogador.x++;
+
+            // Verifica se o jogador chegou à "chegada"
+            if (labirinto[jogador.y][jogador.x] === 2) {
+                clearInterval(intervaloCronometro); // Para o cronômetro
+                alert(`Parabéns! Você venceu o jogo em ${tempo} segundos!`);
+                resetarJogo(); // Reinicia o jogo
+            }
+
+            // Verifica se o jogador colidiu com um bichinho
+            if (bichinhos.some((bicho) => bicho.x === jogador.x && bicho.y === jogador.y)) {
+                alert('Você foi pego por um bichinho! Game over!');
+                resetarJogo(); // Reinicia o jogador
+            }
+
+            desenhaLabirinto(ctx);
+        }
+
+        function moverBichinhos() {
+            bichinhos.forEach((bicho) => {
+                const direcoes = [
+                    { x: 0, y: -1 },
+                    { x: 0, y: 1 },
+                    { x: -1, y: 0 },
+                    { x: 1, y: 0 }
+                ];
+                const movimento = direcoes[Math.floor(Math.random() * direcoes.length)];
+                const novoX = bicho.x + movimento.x;
+                const novoY = bicho.y + movimento.y;
+
+                if (novoX >= 0 && novoX < labirinto[0].length && novoY >= 0 && novoY < labirinto.length &&
+                    labirinto[novoY][novoX] !== 1 &&
+                    !bichinhos.some((outro) => outro.x === novoX && outro.y === novoY)) {
+                    bicho.x = novoX;
+                    bicho.y = novoY;
+                }
+            });
+
+            desenhaLabirinto(ctx);
+        }
+
+        function iniciarCronometro() {
+            intervaloCronometro = setInterval(() => {
+                tempo++;
+                document.getElementById('timer').textContent = `Tempo: ${tempo}`;
+            }, 1000);
+        }
+
+        function resetarJogo() {
+            jogador.x = 0;
+            jogador.y = 0;
+            tempo = 0;
+            document.getElementById('timer').textContent = `Tempo: ${tempo}`;
+            bichinhos[0] = { x: 4, y: 4 };
+            bichinhos[1] = { x: 7, y: 2 };
+            jogoIniciado = false;
+            document.getElementById('startButton').textContent = 'Iniciar Jogo';
+        }
+
+        document.getElementById('startButton').addEventListener('click', () => {
+            if (!jogoIniciado) {
+                jogoIniciado = true;
+                document.getElementById('startButton').textContent = 'Reiniciar Jogo';
+                desenhaLabirinto(ctx);
+                iniciarCronometro();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (jogoIniciado) {
+                moverJogador(e.key);
+            }
+        });
+
+        setInterval(moverBichinhos, 500);
+    </script>
+</body>
+</html>
